@@ -147,12 +147,32 @@ red `SYNTHETIC PRICES` marker on the tape, `DEMO DATA — NOT REAL PRICES` in th
 bar, and a `DEMO` tag on every affected row. Those numbers are a seeded random walk.
 They are not quotes.
 
-### Static hosting
+### Hosting it on GitHub Pages
 
-Prefer GitHub Pages with no server? `.github/workflows/snapshot.yml` commits a market
-snapshot on a cron; the front end detects the missing server and reads it instead.
-Crypto and FX stay live client-side. Options, margin, tax and risk all still work —
-only equity freshness degrades.
+The app lives in `web/`, so a bare Pages deploy would render `README.md` as the site.
+Two ways round that, both already wired up:
+
+**Recommended — Settings → Pages → Source: *GitHub Actions***
+`.github/workflows/pages.yml` publishes `web/` as the site root and refreshes the
+market snapshot at build time. The terminal lands at
+`https://<user>.github.io/<repo>/`.
+
+**Simpler — Settings → Pages → Source: *Deploy from a branch*, `main` / root**
+The `index.html` at the repo root forwards to `web/`. Works with no extra setup.
+
+Either way, once deployed:
+
+- **Crypto and FX are genuinely live**, fetched straight from Binance and the ECB by
+  the browser. Those APIs send open CORS headers, so they need no proxy.
+- **Equities and indices come from `web/data/snapshot.json`**, refreshed by
+  `.github/workflows/snapshot.yml` on a cron. Yahoo sends no CORS headers at all, so
+  this is the only way to get them without a server.
+- Options, margin, interest, tax and risk all work exactly as they do locally — the
+  engine never needed the server.
+
+The repo ships a **seed snapshot flagged as demo data**, so a fresh deploy is not
+blank on day one. Add a `TWELVEDATA_KEY` repository secret and the scheduled workflow
+replaces it with real prices.
 
 ## Options are model-priced
 

@@ -9,7 +9,9 @@
 import { lookup, CRYPTO, FX } from './universe.js';
 import { sessionFor } from './calendar.js';
 
-const API = '/api';
+// Relative, not absolute. On GitHub Pages the app lives under a subpath
+// (/reponame/), where a leading slash would escape the project entirely.
+const API = new URL('api', document.baseURI).href;
 
 const quotes = new Map();      // instrument id -> normalised quote
 const subs = new Map();        // instrument id -> subscriber count
@@ -33,7 +35,7 @@ const emit = (ids) => { for (const fn of listeners) { try { fn(ids); } catch (e)
 export function subscribe(ids) {
   const list = [].concat(ids).filter(Boolean);
   for (const id of list) subs.set(id, (subs.get(id) || 0) + 1);
-  poll(list);
+  if (state.serverPresent === false) pollDirect(list); else poll(list);
   return () => { for (const id of list) {
     const n = (subs.get(id) || 1) - 1;
     if (n <= 0) subs.delete(id); else subs.set(id, n);
@@ -173,6 +175,100 @@ export async function bars(id, days = 365) {
   }
 }
 
+// ---------------------------------------------------------------- static mode
+//
+// Binance, CoinGecko and the ECB all send `Access-Control-Allow-Origin: *`, so
+// with no server present the browser can still talk to them directly. Equities
+// cannot work this way - Yahoo sends no CORS headers at all - which is why they
+// fall back to the committed snapshot instead.
+
+const DIRECT = {
+  async crypto(instruments) {
+    const touchedStable = [];
+    for (const inst of instruments.filter((i) => i.sym === 'USDT')) {
+      // There is no USDTUSDT pair. Tether is the quote asset here, so it is 1.00
+      // by construction rather than by quote.
+      quotes.set(inst.id, {
+        id: inst.id, symbol: 'USDT', price: 1, prevClose: 1, change: 0, changePct: 0,
+        ccy: 'USD', cls: 'crypto', currency: 'USD', source: 'peg',
+        ts: Math.floor(Date.now() / 1000), recvAt: Date.now(), demo: false, tickDir: 0,
+      });
+      touchedStable.push(inst.id);
+    }
+    const pairs = instruments.filter((i) => i.sym !== 'USDT').map((i) => `"${i.sym}USDT"`);
+    if (!pairs.length) return touchedStable;
+    const res = await fetch(
+      `https://api.binance.com/api/v3/ticker/24hr?symbols=[${encodeURIComponent(pairs.join(','))}]`);
+    if (!res.ok) throw new Error(`binance ${res.status}`);
+    const data = await res.json();
+    const touched = touchedStable;
+    for (const row of data) {
+      const sym = row.symbol.replace(/USDT$/, '');
+      const inst = instruments.find((i) => i.sym === sym);
+      if (!inst) continue;
+      const price = Number(row.lastPrice), prev = Number(row.openPrice);
+      const before = quotes.get(inst.id);
+      quotes.set(inst.id, {
+        id: inst.id, symbol: sym, price, prevClose: prev,
+        change: price - prev, changePct: prev ? (price / prev - 1) * 100 : 0,
+        high: Number(row.highPrice), low: Number(row.lowPrice),
+        volume: Number(row.quoteVolume), bid: Number(row.bidPrice), ask: Number(row.askPrice),
+        ccy: 'USD', cls: 'crypto', currency: 'USD', source: 'binance-direct',
+        ts: Math.floor(Date.now() / 1000), recvAt: Date.now(), demo: false,
+        lastPrice: before ? before.price : price,
+        tickDir: before ? Math.sign(price - before.price) : 0,
+      });
+      touched.push(inst.id);
+    }
+    return touched;
+  },
+
+  async fx(instruments) {
+    const res = await fetch('https://api.frankfurter.dev/v1/latest?base=USD');
+    if (!res.ok) throw new Error(`frankfurter ${res.status}`);
+    const { rates } = await res.json();
+    const get = (c) => (c === 'USD' ? 1 : rates[c]);
+    const touched = [];
+    for (const inst of instruments) {
+      const b = get(inst.base), q = get(inst.quote);
+      if (!b || !q) continue;
+      const price = q / b;
+      const before = quotes.get(inst.id);
+      quotes.set(inst.id, {
+        id: inst.id, symbol: inst.id, price, prevClose: price, change: 0, changePct: 0,
+        ccy: inst.ccy, cls: 'fx', currency: inst.quote, source: 'frankfurter-direct',
+        ts: Math.floor(Date.now() / 1000), recvAt: Date.now(), demo: false,
+        lastPrice: before ? before.price : price, tickDir: 0,
+      });
+      touched.push(inst.id);
+    }
+    return touched;
+  },
+};
+
+/** Poll the CORS-open providers straight from the browser. Static mode only. */
+export async function pollDirect(only = null) {
+  const ids = only || [...subs.keys()];
+  const groups = groupByClass(ids);
+  const touched = [];
+  for (const cls of ['crypto', 'fx']) {
+    const list = groups.get(cls);
+    if (!list || !list.length) continue;
+    try {
+      touched.push(...await DIRECT[cls](list));
+    } catch (err) {
+      console.warn('[feed:direct]', cls, err.message);
+    }
+  }
+  if (touched.length) {
+    state.lastOk = Date.now();
+    state.demo = anyDemo();
+    state.status = state.demo ? 'demo' : 'static';
+    emit(touched);
+  }
+  return touched;
+}
+
 /** Adaptive scheduler: fast where it matters, slow where the tape is dark. */
 let timer = null;
 export function start() {
@@ -190,7 +286,10 @@ export function start() {
       const q = quotes.get(id);
       if (!q || now - q.recvAt >= interval) due.push(id);
     }
-    if (due.length) poll(due);
+    if (due.length) {
+      if (state.serverPresent === false) pollDirect(due);
+      else poll(due);
+    }
     timer = setTimeout(tick, 5000);
   };
   tick();
@@ -199,30 +298,52 @@ export function start() {
 export function stop() { clearTimeout(timer); timer = null; }
 
 async function detectServer() {
+  let ok = false;
   try {
+    // A static host answers /api/health with 404 rather than throwing, so a
+    // try/catch alone is not enough to tell "no server" from "no network".
     const res = await fetch(`${API}/health`, { cache: 'no-store' });
-    state.serverPresent = res.ok;
-    if (res.ok) {
+    ok = res.ok;
+    if (ok) {
       const h = await res.json();
       state.hasKey = h.twelvedata_key;
     }
   } catch {
-    state.serverPresent = false;
+    ok = false;
+  }
+  state.serverPresent = ok;
+  if (!ok) {
     state.status = 'static';
     await loadSnapshot();
+    await pollDirect();     // crypto and FX do not need the proxy
   }
 }
 
 /** No server? Fall back to the committed snapshot so the terminal still runs. */
 async function loadSnapshot() {
   try {
-    const res = await fetch('data/snapshot.json', { cache: 'no-store' });
+    const res = await fetch(new URL('data/snapshot.json', document.baseURI), { cache: 'no-store' });
     if (!res.ok) return;
     const snap = await res.json();
-    for (const [id, row] of Object.entries(snap.rows || {})) {
-      quotes.set(id, { ...row, id, recvAt: Date.now(), snapshot: true });
+    // Snapshot rows are keyed by provider symbol; map them onto instrument ids.
+    const { ALL } = await import('./universe.js');
+    const byProviderSym = new Map();
+    for (const inst of ALL) {
+      for (const key of [inst.yf, inst.td, inst.sym, inst.id]) {
+        if (key && !byProviderSym.has(key)) byProviderSym.set(key, inst);
+      }
+    }
+    for (const [key, row] of Object.entries(snap.rows || {})) {
+      const inst = byProviderSym.get(key);
+      if (!inst) continue;
+      quotes.set(inst.id, {
+        ...row, id: inst.id, ccy: inst.ccy, cls: inst.cls,
+        demo: !!(row.demo || snap.demo), snapshot: true, recvAt: Date.now(),
+      });
     }
     state.source = `snapshot ${snap.asOf || ''}`.trim();
+    state.demo = anyDemo();
+    state.status = state.demo ? 'demo' : 'static';
     emit([...quotes.keys()]);
   } catch { /* nothing to fall back to */ }
 }

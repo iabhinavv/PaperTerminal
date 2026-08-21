@@ -19,6 +19,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import server  # noqa: E402
+import demo_data  # noqa: E402
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(HERE, "web", "data", "snapshot.json")
@@ -50,7 +51,37 @@ def chunked(seq, n):
         yield seq[i:i + n]
 
 
+def build_demo():
+    """
+    A seed snapshot so a fresh static deploy is not blank on day one.
+
+    Every row is flagged demo:true, so the terminal shows DEMO DATA - NOT REAL
+    PRICES until the scheduled workflow replaces this with the real thing.
+    """
+    rows = demo_data.rows_for(INDICES + YIELDS + EQUITIES)
+    return {
+        "asOf": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "generated": int(time.time()),
+        "sources": ["demo"],
+        "demo": True,
+        "count": len(rows),
+        "rows": rows,
+    }
+
+
+def write(payload):
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w") as fh:
+        json.dump(payload, fh, separators=(",", ":"))
+    print("wrote %s with %d rows (%s)"
+          % (OUT, payload["count"], "+".join(payload["sources"])), file=sys.stderr)
+
+
 def main():
+    if "--demo" in sys.argv:
+        write(build_demo())
+        return 0
+
     rows = {}
     sources = set()
 
@@ -75,21 +106,20 @@ def main():
         if got_rows:
             sources.add(source)
 
-    if not rows:
-        print("no provider answered - refusing to write an empty snapshot", file=sys.stderr)
+    real = {k: v for k, v in rows.items() if not v.get("demo")}
+    if not real:
+        print("no provider answered - refusing to overwrite a good snapshot",
+              file=sys.stderr)
         return 1
 
-    payload = {
+    write({
         "asOf": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "generated": int(time.time()),
         "sources": sorted(sources),
-        "count": len(rows),
-        "rows": rows,
-    }
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    with open(OUT, "w") as fh:
-        json.dump(payload, fh, separators=(",", ":"))
-    print("wrote %s with %d rows" % (OUT, len(rows)), file=sys.stderr)
+        "demo": False,
+        "count": len(real),
+        "rows": real,
+    })
     return 0
 
 
