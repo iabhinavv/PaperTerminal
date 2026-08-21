@@ -279,11 +279,19 @@ def crypto_base(sym):
 
 def p_binance(symbols):
     bases = [crypto_base(s) for s in symbols]
+    rows = {}
+    # Tether is the quote asset, so USDTUSDT does not exist. Asking for it makes
+    # Binance reject the WHOLE batch with a 400, which used to take every other
+    # coin down with it.
+    if "USDT" in bases:
+        rows["USDT"] = quote_row("USDT", 1.0, 1.0, currency="USD")
+        bases = [b for b in bases if b != "USDT"]
+    if not bases:
+        return rows
     pairs = [b + "USDT" for b in bases]
     url = ("https://api.binance.com/api/v3/ticker/24hr?symbols=%s"
            % urllib.parse.quote(json.dumps(pairs, separators=(",", ":"))))
     data = fetch(url)
-    rows = {}
     for it in data:
         base = it["symbol"][:-4] if it["symbol"].endswith("USDT") else it["symbol"]
         rows[base] = quote_row(
@@ -298,7 +306,7 @@ def p_binance(symbols):
 
 def p_coingecko(symbols):
     url = ("https://api.coingecko.com/api/v3/coins/markets"
-           "?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&price_change_percentage=24h")
+           "?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&price_change_percentage=24h")
     data = fetch(url)
     want = set(crypto_base(s) for s in symbols)
     rows = {}
