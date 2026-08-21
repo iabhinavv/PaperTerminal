@@ -1,0 +1,18 @@
+# Your API keys. Never commit this.
+config.json
+
+# Provider response cache - regenerates itself, machine-specific.
+cache/
+
+# Your account. Export it from SET if you want to version it deliberately,
+# but don't commit it by accident on every save.
+state/*.json
+!state/.gitkeep
+
+# Machine-specific editor scaffolding (absolute paths).
+.claude/
+
+# OS and Python noise
+.DS_Store
+__pycache__/
+*.pyc

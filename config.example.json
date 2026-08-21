@@ -1,0 +1,7 @@
+{
+  "_comment": "Copy to config.json and add free API keys. PaperTerminal runs without any key: crypto and FX stay fully live, equities fall back to Yahoo and then to the bundled snapshot.",
+  "twelvedata_key": "",
+  "fred_key": "",
+  "port": 8317,
+  "cache_ttl_override": {}
+}
