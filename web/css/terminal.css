@@ -286,3 +286,7 @@ body.demo-mode #tape::after {
   background: var(--red); color: #000; font-size: var(--f-xs);
   letter-spacing: 1px; z-index: 2;
 }
+
+/* External chart links open a real charting platform in a new window. */
+.btn.chart { color: var(--cyan); border-color: var(--cyan-dim); }
+.btn.chart:hover { background: var(--cyan); color: #000; border-color: var(--cyan); }

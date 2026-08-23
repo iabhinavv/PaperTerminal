@@ -10,6 +10,7 @@ import * as vol from '../engine/quant/vol.js';
 import * as book from '../engine/book.js';
 import * as S from '../engine/state.js';
 import { lineChart } from './chartlib.js';
+import { chartLinks, openChart, primaryChart } from '../market/charts.js';
 import { openTicket } from './ticket.js';
 
 const needSymbol = (panel) => panel.body.append(empty(
@@ -90,9 +91,23 @@ register({
         ]));
       }
 
+      const links = chartLinks(inst);
+      if (links.length) {
+        host.append(sect('EXTERNAL CHARTS'));
+        host.append(table([
+          { label: 'PLATFORM', get: (l) => `<span class="sym">${l.name}</span>` },
+          { label: 'WHAT IT GIVES YOU', get: (l) => `<span class="dim">${l.note}</span>` },
+          { label: '', get: (l) => el('button', { class: 'btn', style: 'padding:0 5px',
+              onclick: (e) => { e.stopPropagation(); openChart(inst, l.id); } }, 'OPEN') },
+        ], links, { onRow: (l) => openChart(inst, l.id) }));
+      }
+
       const acct = S.get();
       const watched = acct.watchlist.includes(inst.id);
       host.append(el('div', { style: 'display:flex;gap:6px;margin-top:8px;flex-wrap:wrap' },
+        primaryChart(inst)
+          ? el('button', { class: 'btn chart', title: `Opens ${primaryChart(inst).name} in a new window`,
+              onclick: () => openChart(inst) }, 'VIEW CHART') : null,
         el('button', { class: 'btn buy', onclick: () => openTicket(inst.id, 'BUY') }, 'BUY'),
         el('button', { class: 'btn sell', onclick: () => openTicket(inst.id, 'SELL') }, 'SELL'),
         el('button', { class: 'btn', onclick: () => { acct.watchlist = watched
@@ -136,10 +151,14 @@ register({
             'The provider may not cover this exchange, or the request budget is spent.'));
           return;
         }
-        host.append(el('div', { style: 'display:flex;gap:4px;margin-bottom:4px' },
+        host.append(el('div', { style: 'display:flex;gap:4px;margin-bottom:4px;align-items:center' },
           ...ranges.map((r) => el('button', {
             class: 'btn', style: r === selected ? 'color:var(--orange);border-color:var(--orange)' : '',
-            onclick: () => { selected = r; draw(); } }, `${r}D`))));
+            onclick: () => { selected = r; draw(); } }, `${r}D`)),
+          el('span', { style: 'flex:1' }),
+          primaryChart(inst)
+            ? el('button', { class: 'btn chart', title: `Opens ${primaryChart(inst).name} in a new window`,
+                onclick: () => openChart(inst) }, 'VIEW CHART') : null));
 
         const series = slice.map((b) => ({ t: b.t, v: b.c }));
         if (q?.price) series.push({ t: Date.now() / 1000, v: q.price });

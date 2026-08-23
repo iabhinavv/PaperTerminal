@@ -5,7 +5,8 @@ import { num, money, pct } from '../util/fmt.js';
 import { register, live, allDefs } from '../panels.js';
 import * as S from '../engine/state.js';
 import * as feed from '../market/feed.js';
-import { MARKETS, MARKET_ORDER, ALL } from '../market/universe.js';
+import { MARKETS, MARKET_ORDER, ALL, lookup } from '../market/universe.js';
+import { chartLinks, openChart, tvSymbol } from '../market/charts.js';
 
 register({
   code: 'HELP', name: 'HELP — FUNCTION INDEX', group: 'SYSTEM',
@@ -164,5 +165,52 @@ register({
     };
     live(panel, paint, 8000);
     panel.onCleanup(S.onChange(paint));
+  },
+});
+
+register({
+  code: 'CHRT', name: 'EXTERNAL CHARTS', group: 'SECURITY', needsSymbol: true,
+  render(panel, id) {
+    const inst = lookup(id);
+    if (!inst) {
+      return panel.body.append(empty('No security loaded.',
+        'Try <b>AAPL CHRT</b>, <b>RELIANCE CHRT</b> or <b>BTC CHRT</b>.'));
+    }
+    panel.title(`CHRT — ${inst.sym}`);
+
+    const links = chartLinks(inst);
+    if (!links.length) {
+      return panel.body.append(empty(`${inst.name} has no external chart.`,
+        'Synthetic instruments — the sovereign bonds — are priced from a yield curve ' +
+        'rather than traded on a venue, so there is nothing to link to. ' +
+        '<b>YCRV</b> shows the curve they are priced from.'));
+    }
+
+    panel.body.append(el('div', { class: 'empty', html:
+      `PaperTerminal charts daily closes, which is enough to see a trend and not much else. ` +
+      `For candles, intraday depth, indicators and drawing tools, these open ` +
+      `<b>${inst.name}</b> in a new window. Nothing you do there touches your account here.` }));
+
+    panel.body.append(sect('AVAILABLE FOR THIS SECURITY'));
+    panel.body.append(table([
+      { label: 'PLATFORM', get: (l) => `<span class="sym">${l.name}</span>` },
+      { label: 'BEST FOR', get: (l) => `<span class="dim">${l.note}</span>` },
+      { label: '', get: (l) => el('button', { class: 'btn chart', style: 'padding:0 6px',
+          onclick: (e) => { e.stopPropagation(); openChart(inst, l.id); } }, 'OPEN') },
+    ], links, { onRow: (l) => openChart(inst, l.id) }));
+
+    const tv = tvSymbol(inst);
+    if (tv) {
+      panel.body.append(sect('SYMBOL MAPPING'));
+      panel.body.append(kv([
+        ['PaperTerminal', inst.id],
+        ['TradingView', tv],
+        ['Yahoo Finance', inst.yf || '—'],
+        ['Twelve Data', inst.td || '—'],
+      ]));
+      panel.body.append(el('div', { class: 'empty', html:
+        'No two data vendors spell a symbol the same way — this is why the feed carries ' +
+        'more than one name for every instrument.' }));
+    }
   },
 });

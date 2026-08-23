@@ -11,6 +11,7 @@ import { curvePoints, bondPrice } from '../engine/quant/bonds.js';
 import * as S from '../engine/state.js';
 import { lineChart } from './chartlib.js';
 import { openTicket } from './ticket.js';
+import { openChart, primaryChart } from '../market/charts.js';
 
 const quoteCols = (showMkt = true) => [
   { label: 'SYMBOL', get: (r) => `<span class="sym">${r.inst.sym}</span>` },
@@ -26,6 +27,11 @@ const quoteCols = (showMkt = true) => [
     } },
   { label: 'AGE', get: (r) => (r.q ? age((Date.now() - r.q.recvAt) / 1000) : '—'),
     cls: (r) => (r.q && Date.now() - r.q.recvAt > 300000 ? 'warn' : 'dim') },
+  { label: '', get: (r) => (primaryChart(r.inst)
+      ? el('button', { class: 'btn chart', style: 'padding:0 4px',
+          title: `Chart ${r.inst.sym} on ${primaryChart(r.inst).name}`,
+          onclick: (e) => { e.stopPropagation(); openChart(r.inst); } }, 'CHART')
+      : '') },
   { label: 'SRC', get: (r) => (r.q?.demo
       ? '<span class="down">DEMO</span>'
       : `<span class="dim">${(r.q?.source || '').split('(')[0] || '—'}</span>`),
