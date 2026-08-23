@@ -16,6 +16,10 @@ python3 server.py
 Then open <http://localhost:8317>. That is the whole install — the server is Python
 standard library only. No pip, no npm, no build step, no database.
 
+**New to any of this?** The built-in guide at <http://localhost:8317/guide/> explains
+every function, walks through each order type step by step, and carries a 273-term
+guidebook. It is also linked from the terminal's command bar, or type `GUIDE`.
+
 ---
 
 ## What it covers
@@ -89,6 +93,42 @@ The weekly deposit, interest accrual, bond coupons and option expiry all run on 
 gap when you open it. Close the terminal for a month, come back, and you will see
 exactly what thirty nights of carry did. Same input always produces the same account.
 
+## The guide
+
+A companion site at `/guide/`, served alongside the terminal and included in any
+static deploy.
+
+- **Terminal tour** — an annotated replica of the opening screen; select any marker
+  to read what that part of the interface does.
+- **Features** — what each piece does and why it is built that way.
+- **How to trade** — start-to-finish walkthroughs for buying stock, shorting, stops,
+  calls, naked puts, futures, forwards, borrowing and tax planning. Each one ends
+  with the mistake it most commonly produces.
+- **Function reference** — all 25 mnemonics and the keyboard map.
+- **Guidebook** — 273 terms across eleven categories, cross-linked to each other and
+  to the function that displays them, so you can read the definition and then go look
+  at the live number.
+- **Search** — one box across features, functions, walkthroughs and terms. Press `/`.
+
+Coverage was guided by a stock-market terminology primer, the Consensys blockchain
+glossary and the CBOE options glossary. Every definition is written for this app.
+
+## Charts
+
+PaperTerminal draws daily closes, which shows a trend and little else. For candles,
+intraday depth, indicators and drawing tools, every security links out to the
+platforms people already use — TradingView first, then Yahoo Finance, Investing.com,
+NSE India for Indian names, and CoinGecko or Binance for coins.
+
+`CHRT` lists everything available for a security plus its symbol mapping across
+vendors. `DES` and `GP` carry a **VIEW CHART** button, and every board row has one.
+Windows open with `noopener`, so the page you open cannot reach back into the
+terminal.
+
+Symbol mapping is the whole difficulty — no two vendors spell the same company the
+same way — so every prefix was verified against TradingView's own symbol-search API
+rather than assumed.
+
 ## Using it
 
 Type a ticker or a function code and press `GO`.
@@ -102,9 +142,10 @@ PORT 3            send a function to panel 3
 
 | | | | |
 |---|---|---|---|
-| `DES` description | `GP` price graph | `GIP` intraday | `OMON` option board |
-| `OV` option valuation | `FUT` futures | `FRD` forwards | `PORT` portfolio |
-| `MARG` margin & carry | `BORR` borrow desk | `TAX` tax center | `RISK` risk dashboard |
+| `DES` description | `GP` price graph | `GIP` intraday | `CHRT` external charts |
+| `OMON` option board | `OV` option valuation | `FUT` futures | `FRD` forwards |
+| `PORT` portfolio | `MARG` margin & carry | `BORR` borrow desk | `TAX` tax center |
+| `RISK` risk dashboard | `GUIDE` the guide | | |
 | `PNL` attribution | `BLOT` blotter | `ALRT` stops | `WEI` world indices |
 | `CRYP` crypto | `FXIP` FX rates | `YCRV` yield curves | `W` watchlist |
 | `MOST` movers | `SET` settings | `HELP` full index | |

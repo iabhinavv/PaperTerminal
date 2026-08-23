@@ -290,3 +290,11 @@ body.demo-mode #tape::after {
 /* External chart links open a real charting platform in a new window. */
 .btn.chart { color: var(--cyan); border-color: var(--cyan-dim); }
 .btn.chart:hover { background: var(--cyan); color: #000; border-color: var(--cyan); }
+
+/* Link out to the guide. Opens in its own tab so a half-placed order survives. */
+#cmdbar .guidelink {
+  flex: none; font-size: var(--f-xs); letter-spacing: .1em;
+  color: var(--cyan); border: 1px solid var(--cyan-dim);
+  padding: 1px 8px; margin-right: 6px; text-decoration: none; border-radius: 2px;
+}
+#cmdbar .guidelink:hover { background: var(--cyan); color: #000; border-color: var(--cyan); }

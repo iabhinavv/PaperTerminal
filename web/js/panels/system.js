@@ -214,3 +214,36 @@ register({
     }
   },
 });
+
+register({
+  code: 'GUIDE', name: 'USER GUIDE & GUIDEBOOK', group: 'SYSTEM',
+  render(panel) {
+    panel.body.append(el('div', { class: 'empty', html:
+      'The guide is a separate site covering every function, step-by-step walkthroughs for ' +
+      'each order type, and a <b>273-term guidebook</b> spanning stocks, options, futures, ' +
+      'bonds, FX, crypto, margin and tax. Terms are cross-linked to the function that shows ' +
+      'them, so you can read the definition and then go look at the live number.' }));
+
+    panel.body.append(el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px' },
+      ...[['', 'OPEN THE GUIDE'], ['#tour', 'TERMINAL TOUR'], ['#trades', 'HOW TO TRADE'],
+          ['#glossary', 'GUIDEBOOK'], ['#functions', 'FUNCTION REFERENCE']]
+        .map(([hash, label]) => el('button', { class: 'btn chart', onclick: () =>
+          window.open('guide/' + hash, 'paperterminal_guide', 'noopener,noreferrer') }, label))));
+
+    panel.body.append(sect('IF YOU ARE NEW, IN ORDER'));
+    panel.body.append(table([
+      { label: '#', get: (_r, i) => `<span class="dim">${i + 1}</span>` },
+      { label: 'DO THIS', get: (r) => `<span class="sym">${r.what}</span>` },
+      { label: 'WHY', get: (r) => `<span class="dim">${r.why}</span>` },
+    ], [
+      { what: 'AAPL GO', why: 'Load a security and read its description' },
+      { what: 'Press BUY', why: 'See what the spread and slippage actually cost before you commit' },
+      { what: 'PORT GO', why: 'Watch the position mark against you in real time' },
+      { what: 'Attach a STOP', why: 'Decide your maximum loss while you are still calm' },
+      { what: 'MARG GO', why: 'See leverage, carry and how far you are from a margin call' },
+      { what: 'BORR GO', why: 'Borrow, then watch what the interest does over time' },
+      { what: 'OMON GO', why: 'Read an option board — note that puts cost more than calls' },
+      { what: 'TAX GO', why: 'Find out what the gain is actually worth after tax' },
+    ]));
+  },
+});

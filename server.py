@@ -570,6 +570,16 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", ""):
             path = "/index.html"
         target = os.path.normpath(os.path.join(WEB, path.lstrip("/")))
+        # Directory requests resolve to their index, so /guide/ works the way it
+        # does on every static host this is meant to be deployable to.
+        if os.path.isdir(target):
+            if not path.endswith("/"):
+                self.send_response(301)
+                self.send_header("Location", path + "/")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            target = os.path.join(target, "index.html")
         if not target.startswith(WEB) or not os.path.isfile(target):
             return self._send(404, "not found", "text/plain; charset=utf-8")
         with open(target, "rb") as fh:

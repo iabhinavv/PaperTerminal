@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PaperTerminal — Guide</title>
+<meta name="description" content="How to use PaperTerminal: every function explained, step-by-step trade recipes, and a 273-term guidebook covering stocks, options, futures, bonds, FX, crypto, margin and tax.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23000'/><text x='8' y='12' font-size='11' font-family='monospace' fill='%23ff9e1b' text-anchor='middle'>P</text></svg>">
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap topbar">
+    <a class="brand" href="#overview">
+      <span class="brand-mark">PAPER<b>TERMINAL</b></span>
+      <span class="brand-sub">Guide</span>
+    </a>
+
+    <div class="search-shell">
+      <input id="q" type="search" autocomplete="off" spellcheck="false"
+             placeholder="Search features, functions, trades, terms…"
+             aria-label="Search the guide" aria-expanded="false"
+             aria-controls="results" role="combobox">
+      <kbd class="slash">/</kbd>
+      <div id="results" class="results" role="listbox" hidden></div>
+    </div>
+
+    <a class="launch" href="../index.html">Open the terminal</a>
+  </div>
+
+  <nav class="tabs wrap" aria-label="Sections">
+    <a href="#overview" data-nav>Overview</a>
+    <a href="#tour" data-nav>Terminal tour</a>
+    <a href="#features" data-nav>Features</a>
+    <a href="#trades" data-nav>How to trade</a>
+    <a href="#functions" data-nav>Functions</a>
+    <a href="#glossary" data-nav>Guidebook</a>
+  </nav>
+</header>
+
+<main id="main">
+
+  <!-- ───────────────────────────────────────────────────────── overview -->
+  <section id="overview" class="wrap hero">
+    <p class="eyebrow">Self-hosted paper trading terminal</p>
+    <h1>Trade ten markets without losing anything<br>except the illusion that it is easy.</h1>
+    <p class="lede">
+      PaperTerminal looks like a Bloomberg screen because that is the vocabulary the
+      industry actually uses. It exists to teach the two things trading simulators
+      almost always leave out: <b>what leverage costs you while you hold it</b>, and
+      <b>what tax takes once you finally sell</b>.
+    </p>
+
+    <div class="stats">
+      <div><b>10</b><span>equity markets</span></div>
+      <div><b>25</b><span>crypto assets</span></div>
+      <div><b>24</b><span>terminal functions</span></div>
+      <div><b>273</b><span>terms explained</span></div>
+    </div>
+
+    <div class="callout">
+      <h3>Start with three commands</h3>
+      <p>
+        Type <code>AAPL</code> and press <kbd>GO</kbd> to load a security.
+        Type <code>PORT</code> to see what you own. Type <code>MARG</code> to see what
+        it is costing you. Everything else follows from those three.
+      </p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>You start small on purpose</h3>
+        <p>
+          $1,000, plus $1,000 every Monday. Small enough that leverage is tempting,
+          which is precisely the situation the terminal is designed to teach you about.
+          The pattern day trader rule will catch you. So will interest.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Nothing here is advice</h3>
+        <p>
+          Derivatives are model-priced rather than quoted, the tax engine is a
+          simplified model of US federal rules, and no part of this is a
+          recommendation. It is a teaching tool. Talk to a professional before
+          risking real money.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────────────────────────────────────── tour -->
+  <section id="tour" class="wrap">
+    <h2 class="section-h">Terminal tour</h2>
+    <p class="section-sub">
+      A live replica of the opening screen. Select any marker to read what that part
+      of the interface does.
+    </p>
+
+    <div class="tour">
+      <div class="term-shell" id="replica"><!-- built by guide.js --></div>
+      <aside class="tour-note" id="tour-note" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────────────────────────────────── features -->
+  <section id="features" class="wrap">
+    <h2 class="section-h">Features</h2>
+    <p class="section-sub">
+      What the terminal does, and why each piece is built the way it is.
+    </p>
+    <div class="filters" id="feature-filters" role="group" aria-label="Filter features"></div>
+    <div id="feature-list" class="feature-list"></div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────────────────── trades -->
+  <section id="trades" class="wrap">
+    <h2 class="section-h">How to trade</h2>
+    <p class="section-sub">
+      Every order type, start to finish. Each one ends with the mistake it most
+      commonly produces.
+    </p>
+    <div class="filters" id="recipe-filters" role="group" aria-label="Filter trade guides"></div>
+    <div id="recipe-list" class="recipe-list"></div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────── functions -->
+  <section id="functions" class="wrap">
+    <h2 class="section-h">Function reference</h2>
+    <p class="section-sub">
+      Type a code and press <kbd>GO</kbd>. Codes marked <em>takes a security</em> can be
+      combined with a ticker — <code>AAPL OMON</code>, <code>BTC GP</code>.
+    </p>
+    <div class="table-scroll">
+      <table class="fn-table">
+        <thead>
+          <tr><th>Code</th><th>Function</th><th>What it shows</th><th>Takes a security</th></tr>
+        </thead>
+        <tbody id="fn-body"></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-h">Keyboard</h3>
+    <div class="table-scroll">
+      <table class="fn-table keys">
+        <thead><tr><th>Key</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><kbd>GO</kbd> / <kbd>Return</kbd></td><td>Execute the command line</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>Accept the highlighted suggestion</td></tr>
+          <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Move through suggestions</td></tr>
+          <tr><td><kbd>Ctrl</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></td><td>Recall previous commands</td></tr>
+          <tr><td><kbd>Esc</kbd></td><td>Dismiss the dropdown, then clear the line</td></tr>
+          <tr><td><kbd>F1</kbd> – <kbd>F8</kbd></td><td>Jump to the function on the blue strip</td></tr>
+          <tr><td><kbd>1</kbd> – <kbd>4</kbd></td><td>Focus a panel, when the command line is empty</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ───────────────────────────────────────────────────────── glossary -->
+  <section id="glossary" class="wrap">
+    <h2 class="section-h">Guidebook</h2>
+    <p class="section-sub">
+      <span id="term-count">273</span> terms, written for this app. Where a term appears
+      on a PaperTerminal screen, the function is named so you can go and look at the
+      live number instead of only reading about it.
+    </p>
+
+    <div class="gloss-controls">
+      <input id="gq" type="search" placeholder="Filter terms…" aria-label="Filter glossary terms"
+             autocomplete="off" spellcheck="false">
+      <div class="filters" id="cat-filters" role="group" aria-label="Filter by category"></div>
+    </div>
+
+    <p id="gloss-empty" class="empty-note" hidden>No term matches that.</p>
+    <div id="gloss-list" class="gloss-list"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>
+      <b>PaperTerminal</b> — self-hosted, no accounts, no login. Your data stays on
+      your machine.
+    </p>
+    <p class="fine">
+      Glossary coverage was guided by a stock-market terminology primer, the Consensys
+      blockchain glossary and the CBOE options glossary. Every definition here is
+      written for this application.
+    </p>
+    <p class="fine">
+      Not investment advice. Model-priced derivatives are not real quotes, and the tax
+      engine is a simplified model of US federal rules that ignores state tax and your
+      own circumstances.
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="guide.js"></script>
+</body>
+</html>

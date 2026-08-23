@@ -78,6 +78,20 @@ which gates order entry and slows polling on closed venues. Also generates the
 option expiry ladder (weeklies, then third-Fridays) and counts business days for
 settlement and the PDT window.
 
+### `web/js/market/charts.js` (168)
+External chart links. PaperTerminal's own charts are daily closes; for anything more
+it hands off to TradingView, Yahoo, Investing.com, NSE India, CoinGecko and Binance.
+
+Almost the entire file is symbol mapping, because that is the entire difficulty — no
+two vendors spell the same company the same way, and TradingView additionally splits
+US listings by venue and will not resolve a wrong prefix. Every mapping was checked
+against TradingView's symbol-search API rather than assumed, which caught two real
+errors: TOPIX is `TSE:TOPIX`, not `TVC:TPX`, and TradingView does not carry
+`BINANCE:TONUSDT`, so TON falls back to `COINBASE:TONUSD`.
+
+Windows open with `noopener`, without which the opened page gets a handle on this one
+through `window.opener` and can navigate it elsewhere.
+
 ### `web/js/market/feed.js` (262)
 The price feed, and the file most shaped by a real constraint: **Twelve Data's free
 tier is 800 requests/day at 8/min**. Fifty symbols on a naive 60-second poll burns
@@ -233,18 +247,68 @@ status bar, ticker tape and margin-call watcher.
 | File | Functions |
 |---|---|
 | `boards.js` (220) | `WEI` `CRYP` `FXIP` `YCRV` `W` `MOST` |
-| `security.js` (209) | `DES` `GP` `GIP` |
+| `security.js` (222) | `DES` `GP` `GIP` |
 | `derivatives.js` (310) | `OMON` `OV` `FUT` `FRD` |
 | `account.js` (329) | `PORT` `BLOT` `PNL` `ALRT` |
 | `credit.js` (294) | `MARG` `BORR` `TAX` |
 | `riskp.js` (113) | `RISK` |
-| `system.js` (168) | `HELP` `SET` |
+| `system.js` (243) | `HELP` `SET` `CHRT` `GUIDE` |
 | `ticket.js` (173) | The order ticket every trade goes through |
 | `chartlib.js` (168) | SVG line, payoff, bar and sparkline charts |
 
 `ticket.js` deliberately shows what a broker's ticket hides: the spread you're
 crossing, the slippage, **how stale the price is**, the buying-power cost, and the
 tax rate that will apply to the gain.
+
+---
+
+## The guide — `web/guide/`
+
+A companion site served alongside the terminal and included in any static deploy. It
+is a renderer over two data files, which is deliberate: adding a term or a walkthrough
+means editing data, never markup.
+
+### `glossary.js` (1,403)
+273 terms across eleven categories. Each carries a one-line summary, a fuller
+explanation, cross-references, and — where the term appears on a PaperTerminal screen
+— the function that shows it, so a reader can go and look at the live number instead
+of only reading about it.
+
+Coverage was guided by three checklists: a stock-market terminology primer, the
+Consensys blockchain glossary, and the CBOE options glossary. Every definition is
+written from scratch for this application.
+
+### `content.js` (341)
+Features, trade walkthroughs, the function reference, and the hotspot copy for the
+annotated terminal. Each walkthrough ends with a `watch` field — the mistake that
+particular trade most commonly produces — which is the part worth reading twice.
+
+### `guide.js` (542)
+Renders all of the above, plus:
+
+- **Search** over four content types at once, ranked by match quality then by kind, so
+  an exact term beats a passing mention inside a feature description.
+- **The annotated replica** — a CSS recreation of the terminal with numbered markers
+  positioned from the live geometry of the elements they point at, recalculated on
+  resize. Nothing is pinned to magic pixel coordinates.
+- **Deep links that survive filters.** Jumping to a term from a feature, or from a
+  URL hash, clears any active category filter first — otherwise the link lands on a
+  hidden element and appears broken.
+
+Query highlighting escapes the input before inserting it, so a search string can never
+become markup.
+
+### `guide.css` (491)
+Keeps the terminal's palette and its monospace vocabulary for codes and numbers, but
+gives prose room to breathe. The terminal is dense on purpose; a tutorial should not
+be.
+
+### `index.html` (204)
+Structure only. Everything else is rendered.
+
+---
+
+## Utilities
 
 ### `web/js/util/dom.js` (90) · `web/js/util/fmt.js` (80)
 Element building, table construction, modals and toasts; number, currency and
