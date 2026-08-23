@@ -336,9 +336,13 @@ async function loadSnapshot() {
     for (const [key, row] of Object.entries(snap.rows || {})) {
       const inst = byProviderSym.get(key);
       if (!inst) continue;
+      // Per-row flags are authoritative: a snapshot can legitimately mix real
+      // and synthetic rows, so the file-level flag must not tar the real ones.
+      // Fall back to it only for older snapshots that predate per-row flags.
+      const perRow = snap.real != null ? !!row.demo : !!(row.demo || snap.demo);
       quotes.set(inst.id, {
         ...row, id: inst.id, ccy: inst.ccy, cls: inst.cls,
-        demo: !!(row.demo || snap.demo), snapshot: true, recvAt: Date.now(),
+        demo: perRow, snapshot: true, recvAt: Date.now(),
       });
     }
     state.source = `snapshot ${snap.asOf || ''}`.trim();

@@ -6,8 +6,12 @@ name: Market snapshot
 
 on:
   schedule:
-    - cron: '*/10 13-21 * * 1-5'   # every 10 min through the US session
-    - cron: '0 1,3,5,7,9 * * 1-5'  # a few passes across the Asian session
+    # Half-hourly through the US session, plus a few passes across Asia and
+    # Europe. Deliberately not more often: the snapshot only carries equities
+    # and indices, crypto and FX are fetched live by the browser, and a tighter
+    # cron just produces commit noise for prices nobody is looking at.
+    - cron: '0,30 14-21 * * 1-5'
+    - cron: '0 2,7,9,12 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -27,10 +31,24 @@ jobs:
           TWELVEDATA_KEY: ${{ secrets.TWELVEDATA_KEY }}
         run: python3 tools/snapshot.py
 
-      - name: Commit if changed
+      - name: Commit if prices actually moved
         run: |
           git config user.name  "paperterminal-bot"
           git config user.email "noreply@github.com"
           git add web/data/snapshot.json
-          git diff --staged --quiet || git commit -m "snapshot: $(date -u +%Y-%m-%dT%H:%MZ)"
+
+          if git diff --staged --quiet; then
+            echo "snapshot unchanged - nothing to commit"
+            exit 0
+          fi
+
+          REAL=$(python3 -c "import json;print(json.load(open('web/data/snapshot.json')).get('real',0))")
+          if [ "$REAL" -eq 0 ]; then
+            echo "::warning::No real equity or index prices this run. Set a TWELVEDATA_KEY"
+            echo "::warning::repository secret — Yahoo blocks GitHub Actions runner IPs."
+            git reset web/data/snapshot.json
+            exit 0
+          fi
+
+          git commit -m "snapshot: $(date -u +%Y-%m-%dT%H:%MZ) — ${REAL} live prices"
           git push

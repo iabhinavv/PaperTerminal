@@ -51,6 +51,15 @@ def chunked(seq, n):
         yield seq[i:i + n]
 
 
+def load_existing():
+    """Whatever snapshot is already committed, so a bad run cannot erase coverage."""
+    try:
+        with open(OUT) as fh:
+            return json.load(fh).get("rows", {}) or {}
+    except Exception:
+        return {}
+
+
 def build_demo():
     """
     A seed snapshot so a fresh static deploy is not blank on day one.
@@ -98,27 +107,57 @@ def main():
             time.sleep(1.0)   # stay inside the free-tier rate limits
         print("%-9s %d/%d" % (label, got, len(symbols)), file=sys.stderr)
 
-    for kind, symbols in (("crypto", ["BTC", "ETH", "XRP", "BNB", "SOL", "DOGE",
-                                      "ADA", "TRX", "AVAX", "LINK"]),
-                          ("fx", [])):
-        got_rows, source, _ = server.resolve(kind, symbols)
-        rows.update(got_rows)
-        if got_rows:
-            sources.add(source)
+    # Deliberately no crypto or FX here. Binance, CoinGecko and the ECB all send
+    # open CORS headers, so the browser fetches those live even on a static host
+    # with no server at all. Snapshotting them would add bytes, produce a commit
+    # every run, and change nothing a visitor sees.
 
-    real = {k: v for k, v in rows.items() if not v.get("demo")}
-    if not real:
-        print("no provider answered - refusing to overwrite a good snapshot",
-              file=sys.stderr)
+    fresh_real = {k: v for k, v in rows.items() if not v.get("demo")}
+    fell_back = {k: v for k, v in rows.items() if v.get("demo")}
+
+    # Merge over whatever is already committed, in priority order:
+    #   a real quote from this run  >  whatever the snapshot already had  >  demo
+    #
+    # The earlier version simply discarded every demo row, which looked prudent
+    # and was not: on a runner where Yahoo is IP-blocked and no API key is set,
+    # EVERY equity falls back to demo, so the filter silently emptied the board
+    # of the only asset class the snapshot exists to carry.
+    previous = load_existing()
+    merged = dict(previous)
+    kept_previous = 0
+    for sym, row in fell_back.items():
+        if sym in previous and not previous[sym].get("demo"):
+            kept_previous += 1          # a stale real price beats a fresh fake one
+        else:
+            merged[sym] = row
+    merged.update(fresh_real)
+
+    if not merged:
+        print("nothing to write and nothing already committed", file=sys.stderr)
         return 1
+
+    real_count = sum(1 for v in merged.values() if not v.get("demo"))
+    print("merged: %d real, %d synthetic, %d stale-real preserved"
+          % (real_count, len(merged) - real_count, kept_previous), file=sys.stderr)
+
+    if not fresh_real:
+        print("WARNING: no provider returned a real equity or index price this run.",
+              file=sys.stderr)
+        print("         Set a TWELVEDATA_KEY repository secret - Yahoo blocks the",
+              file=sys.stderr)
+        print("         datacentre IPs that GitHub Actions runners use.", file=sys.stderr)
 
     write({
         "asOf": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "generated": int(time.time()),
         "sources": sorted(sources),
-        "demo": False,
-        "count": len(real),
-        "rows": real,
+        # True if the file contains ANY synthetic rows. Per-row `demo` flags stay
+        # authoritative for what the terminal displays; this is the summary for a
+        # human reading the file, and "1 real out of 100" is not "not demo".
+        "demo": real_count < len(merged),
+        "real": real_count,
+        "count": len(merged),
+        "rows": merged,
     })
     return 0
 
